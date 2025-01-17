@@ -1,4 +1,4 @@
-
+# Imports
 import torch
 import opendatasets as od
 from torchvision.transforms import v2
@@ -15,10 +15,12 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 Image.MAX_IMAGE_PIXELS = 300000000
 
+# Loading the data
 dataset_url = "https://www.kaggle.com/competitions/induction-task/data?select=Data"
 od.download(dataset_url)
 stats = ((0.46873796, 0.42310694, 0.42438492), (0.26308802, 0.23277692, 0.2445178))
 
+# Defining different transforms
 train_transforms = v2.Compose([
     v2.Resize((1024,1024)),
     #v2.RandomCrop((128,128)),
@@ -34,6 +36,7 @@ val_transforms = v2.Compose([
     #v2.Normalize(*stats)
 ])
 
+# Using a Custom Dataset to apply different training and validation transforms to the datasets
 data_dir = "./New_Data"
 ds = ImageFolder(data_dir)
 train_ds, val_ds = random_split(ds, [0.75, 0.25])
@@ -46,6 +49,7 @@ batch_size = 4
 train_dl = DataLoader(train_ds, batch_size, shuffle=True, num_workers=0, pin_memory=True)
 val_dl = DataLoader(val_ds, batch_size, shuffle=True, num_workers=0, pin_memory=True)
 
+# Some Helper functions
 def get_default_device():
     """Pick GPU if available, else CPU"""
     if torch.cuda.is_available():
@@ -77,11 +81,12 @@ class DeviceDataLoader():
         """Number of batches"""
         return len(self.dl)
 
+# Shifting to GPU
 device = get_default_device()
-
 train_dl = DeviceDataLoader(train_dl, device)
 val_dl = DeviceDataLoader(val_dl, device)
 
+# Defining the ResNet Block
 class ResNetBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super().__init__()
@@ -97,7 +102,7 @@ class ResNetBlock(nn.Module):
     def forward(self, batch):
         return self.block(batch) + batch
 
-
+# Defining the block where the kernels reduce in size
 class SizeReduceBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, padding=1):
         super().__init__()
@@ -112,12 +117,14 @@ class SizeReduceBlock(nn.Module):
         self.batch_layer = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, padding=0)
 
     def forward(self, batch):
-        projection = self.batch_layer(batch)
+        projection = self.batch_layer(batch) #Scaling the input image_batch to keep dimensions same while addition
         diff = self.block(batch)
         return diff + projection
 
 factors = [1, 1, 2, 2, 2, 4, 4, 4, 4, 4, 8, 8]
 
+
+# Defining the ResNet34
 class Classifier(nn.Module):
     def __init__(self, in_channels, kernel_size=3, stride=1, padding=1):
         super().__init__()
@@ -156,6 +163,7 @@ class Classifier(nn.Module):
         return out
 
 
+# HyperParameters
 in_channels = 64
 lr = 1e-5
 epochs = 5
@@ -173,8 +181,10 @@ def accuracy(outputs, labels):
     correct = (predictions == labels).sum()
     return correct
 
+# Using TensorBoard to visualize results
 writer = SummaryWriter("./TB_logs")
 
+# Defining the fit function
 def fit(epochs, model, train_loader, val_loader, optimizer=torch.optim.Adam, grad_clip = None, weight_decay = 0):
     opt = optimizer(model.parameters(), lr, weight_decay = weight_decay)
     for epoch in range(epochs):
@@ -217,6 +227,7 @@ def fit(epochs, model, train_loader, val_loader, optimizer=torch.optim.Adam, gra
         print(f"\nVal_Acc: {val_acc}, Train_Acc: {train_acc}")
         print(f"Val_Loss: {np.mean(val_history)}, Train_LossL {np.mean(history)}")
 
+# Using this so that fit function is not called when a class from this file is imported
 if __name__ == "__main__" :
     fit(epochs, model, train_dl, val_dl, grad_clip = grad_clip, weight_decay = weight_decay)
     torch.save(model.state_dict(), 'Real_or_fake_2.pth')
