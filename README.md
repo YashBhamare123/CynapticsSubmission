@@ -12,5 +12,5 @@ Approaches
 1. ProGANs
 
 ### Sub-Task3:
-Approachers
+Approaches
 1. Face-Aging using CAAE (Incomplete)
