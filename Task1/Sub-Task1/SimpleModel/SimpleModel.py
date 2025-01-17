@@ -1,11 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## Imports
-
-# In[2]:
-
-
+# Imports
 import torch
 import torch.nn as nn
 import opendatasets as od
@@ -17,35 +10,13 @@ from tqdm import tqdm
 import torch.nn.functional as F
 
 
-# ## Importing Data
 
-# In[4]:
-
-
+# Loading the Data
 download_url = "https://www.kaggle.com/competitions/induction-task/data"
 
-
-# In[5]:
-
-
 od.download(download_url)
-
-
-# In[6]:
-
-
 dataset = ImageFolder("./New_Data", transform = v2.ToTensor())
-
-
-# In[7]:
-
-
 stats = ((0.46873796, 0.42310694, 0.42438492), (0.26308802, 0.23277692, 0.2445178))
-
-
-# In[8]:
-
-
 train_ts = v2.Compose([
     v2.Resize((256,256)),
     v2.RandomCrop((256,256), padding =50, padding_mode = 'reflect'),
@@ -55,10 +26,6 @@ train_ts = v2.Compose([
     v2.Normalize(*stats)
 ]) 
 
-
-# In[9]:
-
-
 val_ts = v2.Compose([
     v2.Resize((256,256)),
     v2.ToTensor(),
@@ -66,35 +33,16 @@ val_ts = v2.Compose([
 ])
 
 
-# In[10]:
-
 
 train_ds, val_ds = random_split(dataset, [0.75, 0.25])
-
-
-# In[11]:
-
-
 train_ds = CustomDataset(train_ds, train_ts)
 val_ds = CustomDataset(val_ds, val_ts)
-
-
-# In[12]:
-
-
 batch_size = 8
-
-
-# In[13]:
-
-
 train_dl = DataLoader(train_ds, batch_size, shuffle=True, num_workers=0, pin_memory=True)
 val_dl =  DataLoader(val_ds, batch_size, shuffle=True, num_workers=0, pin_memory=True)
 
 
-# ## Using GPU
-
-# In[15]:
+# Using GPU
 
 
 def get_default_device():
@@ -137,11 +85,7 @@ train_dl = DeviceDataLoader(train_dl, device)
 val_dl = DeviceDataLoader(val_dl, device)
 
 
-# ## Model
-
-# In[18]:
-
-
+# Model
 class SimpleModel(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
@@ -175,29 +119,12 @@ class SimpleModel(nn.Module):
         
 
 
-# ## Training Loop
-
-# In[ ]:
-
-
+# Training Loop
 model = SimpleModel(32)
 model = model.to(device)
-
-
-# In[ ]:
-
-
 epochs = 20
 lr = 1e-5
-
-
-# In[ ]:
-
-
 opt = torch.optim.Adam(model.parameters(),lr)
-
-
-# In[ ]:
 
 
 @torch.no_grad()
@@ -205,10 +132,6 @@ def accuracy_count(outputs, labels):
     predictions = (outputs>0.5).squeeze(-1)
     correct = (predictions == labels).sum()
     return correct
-
-
-# In[ ]:
-
 
 def fit(epochs, lr, model, train_dl, val_dl, optimizer):
     opt = optimizer(model.parameters(), lr)
@@ -237,17 +160,9 @@ def fit(epochs, lr, model, train_dl, val_dl, optimizer):
         print(f"Val: {val_correct/float(len(val_ds))}, Train: {train_correct/float(len(train_ds))}")    
 
 
-# In[ ]:
-
-
 fit(epochs, lr, model, train_dl, val_dl, torch.optim.Adam)
 
-
-# In[248]:
-
-
 import os
-
 import torch
 from tqdm import tqdm
 from torchvision.datasets import ImageFolder
@@ -322,7 +237,7 @@ def predict_and_save_csv_pytorch(model, images_dir, output_csv='./predictions.cs
 
     print(f"Predictions saved to {os.path.abspath(output_csv)}")
 
-predict_and_save_csv_pytorch(model, "./induction-task/Data/Test2/Test_Images", device = device)
+predict_and_save_csv_pytorch(model, "./test_data", device = device)
 
 
 
